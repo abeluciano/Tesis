@@ -19,7 +19,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_dev';
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-  
+
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -57,14 +57,14 @@ app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    
+
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.rows[0];
     const match = await bcrypt.compare(password, user.password);
-    
+
     if (!match) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -107,5 +107,5 @@ app.get('/reportes', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
+  console.log(`Server running on port ${PORT}`);
 });
