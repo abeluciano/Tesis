@@ -56,4 +56,17 @@ class ApiService {
   Future<void> logout() async {
     await storage.delete(key: 'jwt');
   }
+
+  Future<List<dynamic>> getReportes() async {
+    final url = await _apiUrl;
+    try {
+      final response = await http.get(Uri.parse('$url/reportes'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      print(e);
+    }
+    return [];
+  }
 }
