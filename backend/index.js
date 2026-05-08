@@ -4,6 +4,8 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const swaggerJsdoc = require('swagger-jsdoc');
+const { apiReference } = require('@scalar/express-api-reference');
 
 const app = express();
 app.use(cors());
@@ -14,6 +16,62 @@ const pool = new Pool({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_dev';
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Tesis API',
+      version: '1.0.0',
+      description: 'API documentation for Tesis project',
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./index.js'],
+};
+
+const openapiSpecification = swaggerJsdoc(options);
+
+app.use(
+  '/api-docs',
+  apiReference({
+    spec: {
+      content: openapiSpecification,
+    },
+  })
+);
+
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: API info
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: API info and endpoints
+ */
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Tesis API',
+    version: '1.0.0',
+    endpoints: {
+      'POST /auth/register': 'Register a new user',
+      'POST /auth/login': 'Login and get JWT',
+      'GET /auth/me': 'Get current user info (requires JWT)',
+      'GET /reportes': 'Get all reportes with GeoJSON',
+    },
+  });
+});
 
 // Middleware for auth
 const authenticate = (req, res, next) => {
@@ -30,6 +88,35 @@ const authenticate = (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nombre
+ *               - email
+ *               - password
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Missing fields or email already exists
+ */
 app.post('/auth/register', async (req, res) => {
   try {
     const { nombre, email, password } = req.body;
@@ -53,6 +140,32 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login and get JWT
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
 app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -77,6 +190,19 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user info
+ *     responses:
+ *       200:
+ *         description: Current user information
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
 app.get('/auth/me', authenticate, async (req, res) => {
   try {
     const result = await pool.query('SELECT id, nombre, email, created_at FROM usuarios WHERE id = $1', [req.user.id]);
@@ -90,6 +216,16 @@ app.get('/auth/me', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /reportes:
+ *   get:
+ *     summary: Get all reportes
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: List of reportes
+ */
 app.get('/reportes', async (req, res) => {
   try {
     const result = await pool.query(`
