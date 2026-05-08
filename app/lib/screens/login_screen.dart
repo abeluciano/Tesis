@@ -17,23 +17,31 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   void _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor completa todos los campos')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    final success = await _apiService.login(
-      _emailController.text,
+    final result = await _apiService.login(
+      _emailController.text.trim(),
       _passwordController.text,
     );
     setState(() => _isLoading = false);
 
-    if (success) {
-      if (!mounted) return;
+    if (!mounted) return;
+
+    if (result != null && result.containsKey('token')) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MapScreen()),
       );
     } else {
-      if (!mounted) return;
+      final errorMsg = result?['error'] ?? 'Login failed';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login failed')),
+        SnackBar(content: Text(errorMsg)),
       );
     }
   }
@@ -57,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
+              onSubmitted: (_) => _login(),
             ),
             const SizedBox(height: 24),
             _isLoading

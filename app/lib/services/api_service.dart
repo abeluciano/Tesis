@@ -1,21 +1,28 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000'; // For Android emulator, use 10.0.2.2. For iOS/Web use localhost.
   final storage = const FlutterSecureStorage();
 
-  Future<String> get _apiUrl async {
-    // Basic fallback for development
-    return baseUrl; 
+  String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000';
+    }
+    // Android emulator uses 10.0.2.2 to reach host localhost
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:3000';
+    }
+    // Windows desktop, iOS simulator, etc.
+    return 'http://localhost:3000';
   }
 
-  Future<bool> login(String email, String password) async {
-    final url = await _apiUrl;
+  Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$url/auth/login'),
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
@@ -23,30 +30,35 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await storage.write(key: 'jwt', value: data['token']);
-        return true;
+        return data;
+      } else {
+        final body = jsonDecode(response.body);
+        return {'error': body['error'] ?? 'Login failed'};
       }
     } catch (e) {
-      print(e);
+      print('Login error: $e');
+      return {'error': 'No se pudo conectar al servidor'};
     }
-    return false;
   }
 
-  Future<bool> register(String nombre, String email, String password) async {
-    final url = await _apiUrl;
+  Future<Map<String, dynamic>?> register(String nombre, String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$url/auth/register'),
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'nombre': nombre, 'email': email, 'password': password}),
       );
 
       if (response.statusCode == 201) {
-        return true;
+        return jsonDecode(response.body);
+      } else {
+        final body = jsonDecode(response.body);
+        return {'error': body['error'] ?? 'Registration failed'};
       }
     } catch (e) {
-      print(e);
+      print('Register error: $e');
+      return {'error': 'No se pudo conectar al servidor'};
     }
-    return false;
   }
 
   Future<String?> getToken() async {
@@ -58,14 +70,13 @@ class ApiService {
   }
 
   Future<List<dynamic>> getReportes() async {
-    final url = await _apiUrl;
     try {
-      final response = await http.get(Uri.parse('$url/reportes'));
+      final response = await http.get(Uri.parse('$baseUrl/reportes'));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
     } catch (e) {
-      print(e);
+      print('Reportes error: $e');
     }
     return [];
   }
