@@ -266,6 +266,89 @@ app.get('/reportes', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /reportes:
+ *   post:
+ *     summary: Create a new report
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoria
+ *               - urgencia
+ *               - descripcion
+ *               - latitud
+ *               - longitud
+ *             properties:
+ *               categoria:
+ *                 type: string
+ *               urgencia:
+ *                 type: string
+ *               descripcion:
+ *                 type: string
+ *               latitud:
+ *                 type: number
+ *               longitud:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Report created successfully
+ *       400:
+ *         description: Missing fields or invalid coordinates
+ *       401:
+ *         description: Unauthorized
+ */
+app.post('/reportes', authenticate, async (req, res) => {
+  try {
+    const { categoria, urgencia, descripcion, latitud, longitud } = req.body;
+    if (!categoria || !urgencia || !descripcion || latitud === undefined || longitud === undefined) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    const lat = parseFloat(latitud);
+    const lng = parseFloat(longitud);
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ error: 'Invalid coordinates' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO reportes (
+        usuario_id, 
+        ubicacion, 
+        categoria, 
+        urgencia, 
+        descripcion, 
+        estado, 
+        created_at, 
+        updated_at
+      ) VALUES (
+        $1, 
+        ST_SetSRID(ST_MakePoint($2, $3), 4326), 
+        $4, 
+        $5, 
+        $6, 
+        'Reportado', 
+        NOW(), 
+        NOW()
+      ) RETURNING 
+        id, usuario_id, categoria, urgencia, descripcion, estado, created_at, updated_at,
+        ST_AsGeoJSON(ubicacion)::json AS geojson`,
+      [req.user.id, lng, lat, categoria, urgencia, descripcion]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating report:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
