@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
+import 'report_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -31,7 +32,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Color _getColorForUrgencia(String? urgencia) {
-    switch (urgencia?.toLowerCase()) {
+    switch (urgencyKey(urgencia)) {
       case 'alto':
         return Colors.red;
       case 'medio':
@@ -41,6 +42,10 @@ class _MapScreenState extends State<MapScreen> {
       default:
         return Colors.blue;
     }
+  }
+
+  String urgencyKey(String? urgencia) {
+    return (urgencia ?? '').trim().toLowerCase();
   }
 
   @override
@@ -105,6 +110,20 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ],
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ReportScreen()),
+          );
+          if (result == true) {
+            setState(() => _isLoading = true);
+            _loadReportes();
+          }
+        },
+        label: const Text('Reportar Incidente'),
+        icon: const Icon(Icons.add_location_alt),
+      ),
     );
   }
 }
