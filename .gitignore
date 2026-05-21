@@ -21,3 +21,10 @@ node_modules/
 .settings/
 ios/Flutter/.last_build_id
 Mac/
+
+# Credentials and sensitive keys
+**/google-services.json
+**/serviceAccountKey.json
+.vscode/
+Dashboard/dist/
+

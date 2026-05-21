@@ -22,21 +22,25 @@ dependencies {
 
 android {
     namespace = "com.jlbr.reportes"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    
+    compileSdk = 36 
+    ndkVersion = "27.0.12077973"
 
+    // 1. Cambia la compatibilidad de Java a VERSION_17 👇
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // 2. Cambia el jvmTarget de Kotlin a la versión 17 👇
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
         applicationId = "com.jlbr.reportes"
-        minSdk = flutter.minSdkVersion
+        minSdk = 23 
+        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -50,6 +54,7 @@ android {
         }
     }
 }
+
 
 flutter {
     source = "../.."
