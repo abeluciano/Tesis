@@ -6,6 +6,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const swaggerJsdoc = require('swagger-jsdoc');
 const { apiReference } = require('@scalar/express-api-reference');
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 const app = express();
 app.use(cors());
@@ -41,7 +47,7 @@ const options = {
 
 const openapiSpecification = swaggerJsdoc(options);
 
-app.use(
+app.get(
   '/api-docs',
   apiReference({
     spec: {
@@ -73,17 +79,36 @@ app.get('/', (req, res) => {
   });
 });
 
-// Middleware for auth
-const authenticate = (req, res, next) => {
+// Middleware for auth using Firebase Admin SDK
+const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No token provided' });
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const email = decodedToken.email;
+    const nombre = decodedToken.name || email.split('@')[0];
+
+    // Find or automatically create user in PostgreSQL
+    let result = await pool.query('SELECT id, nombre, email FROM usuarios WHERE email = $1', [email]);
+    let user;
+
+    if (result.rows.length === 0) {
+      // Auto-register user in PostgreSQL
+      const insertResult = await pool.query(
+        'INSERT INTO usuarios (nombre, email, password) VALUES ($1, $2, $3) RETURNING id, nombre, email',
+        [nombre, email, 'firebase_auth_managed'] // Password won't be used since authentication is external
+      );
+      user = insertResult.rows[0];
+    } else {
+      user = result.rows[0];
+    }
+
+    req.user = user;
     next();
   } catch (err) {
+    console.error('Firebase Auth Error:', err);
     res.status(401).json({ error: 'Invalid token' });
   }
 };
