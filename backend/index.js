@@ -97,8 +97,8 @@ const authenticate = async (req, res, next) => {
     if (result.rows.length === 0) {
       // Auto-register user in PostgreSQL
       const insertResult = await pool.query(
-        'INSERT INTO usuarios (nombre, email, password) VALUES ($1, $2, $3) RETURNING id, nombre, email',
-        [nombre, email, 'firebase_auth_managed'] // Password won't be used since authentication is external
+        'INSERT INTO usuarios (nombre, email, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, email',
+        [nombre, email, 'firebase_auth_managed', 'ciudadano']
       );
       user = insertResult.rows[0];
     } else {
@@ -333,7 +333,7 @@ app.post('/reportes', authenticate, async (req, res) => {
         $4, 
         $5, 
         $6, 
-        'Reportado', 
+        'pendiente', 
         NOW(), 
         NOW()
       ) RETURNING 

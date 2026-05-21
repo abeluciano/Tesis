@@ -25,9 +25,9 @@ class _ReportScreenState extends State<ReportScreen> {
     {'value': 'robo', 'label': 'Robo'},
     {'value': 'asalto', 'label': 'Asalto'},
     {'value': 'vandalismo', 'label': 'Vandalismo'},
-    {'value': 'extorsión', 'label': 'Extorsión'},
-    {'value': 'alumbrado deficiente', 'label': 'Alumbrado Deficiente'},
-    {'value': 'infraestructura dañada', 'label': 'Infraestructura Dañada'},
+    {'value': 'extorsion', 'label': 'Extorsión'},
+    {'value': 'alumbrado_deficiente', 'label': 'Alumbrado Deficiente'},
+    {'value': 'infraestructura_danada', 'label': 'Infraestructura Dañada'},
   ];
 
   final List<String> _urgencies = ['bajo', 'medio', 'alto'];
